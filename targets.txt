@@ -1,0 +1,6 @@
+accounts.api.cx.metamask.io
+accounts.dev-api.cx.metamask.io
+accounts.uat-api.cx.metamask.io
+account.api.cx.metamask.io
+accounts-us-east-2.api.cx.metamask.io
+adapter-us-east-2.api.cx.metamask.io
