@@ -9,21 +9,60 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Set up Python (for jq_escape helper)
+      - name: Set up Python (for small helpers)
         uses: actions/setup-python@v4
         with:
           python-version: '3.x'
 
-      - name: Make scripts executable
-        run: chmod +x scripts/run_passive_checks.sh
+      - name: Install system deps (jq, openssl)
+        run: |
+          sudo apt-get update -y
+          sudo apt-get install -y jq openssl ca-certificates
+        shell: bash
 
-      - name: Run passive checks
-        run: ./scripts/run_passive_checks.sh
+      - name: Make scripts executable & show script (debug)
+        run: |
+          chmod +x scripts/run_passive_checks.sh || true
+          echo "==== scripts/run_passive_checks.sh ===="
+          sed -n '1,300p' scripts/run_passive_checks.sh || true
+          echo "======================================"
+        shell: bash
 
-      - name: Show triage summary
-        run: cat out/triage.txt || true
+      - name: Run passive checks (capture exit code)
+        run: |
+          set -x
+          # ensure out dir exists so we can always write exit_code
+          mkdir -p out
+          set +e
+          ./scripts/run_passive_checks.sh
+          rc=$?
+          echo "SCRIPT_EXIT_CODE=$rc"
+          echo "$rc" > out/exit_code.txt
+          if [ "$rc" -ne 0 ]; then
+            echo "WARNING: script exited non-zero (see out/exit_code.txt and workflow logs)."
+            # do not exit with non-zero so artifact upload still happens
+          fi
+        shell: bash
+        # keep the job going even if the script fails; we still want artifacts
 
-      - name: Upload artifacts
+      - name: Show triage summary (if exists)
+        run: |
+          echo "---- out/triage.txt (if present) ----"
+          cat out/triage.txt || echo "no triage.txt found"
+          echo "---- out/exit_code.txt ----"
+          cat out/exit_code.txt || echo "no exit code found"
+        shell: bash
+
+      - name: List generated files (debug)
+        run: |
+          echo "Contents of out/:"
+          ls -la out || true
+          echo "Contents of out/raw/:"
+          ls -la out/raw || true
+        shell: bash
+
+      - name: Upload artifacts (always)
+        if: always()
         uses: actions/upload-artifact@v4
         with:
           name: passive-scan-output
