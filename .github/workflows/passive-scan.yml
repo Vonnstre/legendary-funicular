@@ -1,0 +1,30 @@
+name: Passive CORS + TLS scan
+on:
+  workflow_dispatch:
+
+jobs:
+  passive-scan:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python (for jq_escape helper)
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.x'
+
+      - name: Make scripts executable
+        run: chmod +x scripts/run_passive_checks.sh
+
+      - name: Run passive checks
+        run: ./scripts/run_passive_checks.sh
+
+      - name: Show triage summary
+        run: cat out/triage.txt || true
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: passive-scan-output
+          path: out
